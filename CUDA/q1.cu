@@ -1,22 +1,23 @@
-#include <cuda.h>
 #include <stdio.h>
+#define NUM_BLOCKS 3	//Number of blocks
+#define BLOCK_WIDTH 192	//number of threads in in the thread block
 
-__global__ void kernel(void)
+__global__ void hello()
 {
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	printf("Hello World - Block : %d - Thread : %d - Global Thread ID : %d\n" , 
-		blockIdx.x, threadIdx.x,idx);
+    printf("Hello world! I'm a thread in block %d and my thread id is %d\n", blockIdx.x,threadIdx.x);
 }
 
-int main()
+
+int main(int argc,char **argv)
 {
-	int num_threads, num_blocks;
+    // launch the kernel
+    hello<<<NUM_BLOCKS, BLOCK_WIDTH>>>();
 
-	printf("Enter number of blocks and threads per block !\n");
-	scanf("%d%d",&num_blocks,&num_threads);
+    // force the printf()s to flush
+    cudaDeviceSynchronize();
 
-	kernel<<<num_blocks,num_threads>>>();
-	cudaDeviceSynchronize();
-	printf("Hello World !!\n");
+    printf("That's all!\n");
 
+    return 0;
 }
+

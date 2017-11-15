@@ -1,52 +1,62 @@
-#include <cuda.h>
+#include <iostream>
+#include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 
-__global__ void add(int* d_vec1, int* d_vec2, int* d_vec3)
-{
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	d_vec3[idx] = d_vec2[idx] + d_vec1[idx];
+__global__
+void add(double *a,double*b,double* c,int n) {
+
+    int id = blockIdx.x * blockDim.x + threadIdx.x;
+    if(id>0)
+        c[id] = a[id] + b[id];
+
 }
 
 int main()
 {
-	int i ;
 
-	int num_blocks = 1000;
-	int num_threads = 512;
+   int n = 100;
 
-	int SIZE = num_threads*num_blocks;
-	int BYTES = SIZE * sizeof(int);
+ // Device input vectors
+    double *d_a;
+    double *d_b;
+    //Device output vector
+    double *d_c;
+ 
+    int i=0;
 
-	// declare device and host variables
-	int h_vec1[SIZE],h_vec2[SIZE],h_vec3[SIZE];
-	int *d_vec1, *d_vec2, *d_vec3;
+    cudaMallocManaged(&d_a,n*sizeof(double));
+    cudaMallocManaged(&d_b,n*sizeof(double));
+    cudaMallocManaged(&d_c,n*sizeof(double));
 
-	// allocate memory on the device
-	cudaMalloc((void**)&d_vec1,BYTES);
-	cudaMalloc((void**)&d_vec2,BYTES);
-	cudaMalloc((void**)&d_vec3,BYTES);
+     for ( i = 0; i < n; i++) {
+        d_a[i] = i;
+        d_b[i] = i;
+      }
 
-	// generate array on host
-	for(i=0;i<SIZE;i++)
-	{
-		h_vec1[i] = rand()%20;
-		h_vec2[i] = rand()%20;
-		h_vec3[i] = 0;
-	}
 
-	// move variables from host to device
-	cudaMemcpy(d_vec1,h_vec1,BYTES,cudaMemcpyHostToDevice);
-	cudaMemcpy(d_vec2,h_vec2,BYTES,cudaMemcpyHostToDevice);
+    int blockSize = 512;
+    // Number of thread blocks in grid
+    int gridSize = (int)ceil((float)n/blockSize);
 
-	// lauch kernel
-	add<<<num_blocks,num_threads>>>(d_vec1,d_vec2,d_vec3);
+    add <<< gridSize,blockSize >>>(d_a,d_b,d_c,n);
+        cudaDeviceSynchronize();
 
-	// move result back to main memory
-	cudaMemcpy(h_vec3,d_vec3,BYTES,cudaMemcpyDeviceToHost);
+     printf("%d  %d\n",gridSize,blockSize );   
 
-	//print result
-	for(i=0;i<SIZE;i++)
-		printf("%d ", h_vec3[i]);
+     for(i=0;i<n;i++)
+     {
+        printf("%f + %f = %f\n",d_a[i],d_b[i],d_c[i]);
+     }  
+
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_c);
+     
+
+
+    /*float maxError = 0.0f;
+    for (int i = 0; i < n; i++)
+    maxError = fmax(maxError, fabs(d_c[i]-3.0f));
+    std::cout << "Max error: " << maxError << std::endl;*/
 
 }
