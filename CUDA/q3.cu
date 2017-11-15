@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define N 32 // dim of matrix
+#define N 3 // dim of matrix
 
 
 //Fattened matrix multiplication . Kernel does not support x,y addressing
@@ -27,50 +27,37 @@ int main()
 {
 	int i,j;
 	int SIZE = N*N;
-	int BYTES = SIZE*sizeof(int);
+	//int BYTES = SIZE*sizeof(int);
 
-	// declare device and host variables
-	int h_mat1[N][N] , h_mat2[N][N] , h_mat3[N][N];
 	int *d_mat1, *d_mat2, *d_mat3;
 
 	// allocate memory on the device
-	cudaMalloc((void**)&d_mat1,BYTES);
-	cudaMalloc((void**)&d_mat2,BYTES);
-	cudaMalloc((void**)&d_mat3,BYTES);
+	cudaMallocManaged(&d_mat1,N*N*sizeof(int));
+	cudaMallocManaged(&d_mat2,N*N*sizeof(int));
+	cudaMallocManaged(&d_mat3,N*N*sizeof(int));
 
 	// generate matrix on host
-	for(i=0;i<N;i++)
+	for(i=0;i<N*N;i++) //linearize array
 	{
-		for(j=0;j<N;j++)
-		{
-			h_mat1[i][j] = 1;
-			h_mat2[i][j] = 1;
-			h_mat3[i][j] = 0;
-		}
+			d_mat1[i] = 1;
+			d_mat2[i] = 1;
+			d_mat3[i] = 0;
+
 	}
 
 	dim3 dimGrid(1,1);
 	dim3 dimBlock(N,N);
 
-	// move variables from host to device
-	cudaMemcpy(d_mat1,h_mat1,BYTES,cudaMemcpyHostToDevice);
-	cudaMemcpy(d_mat2,h_mat2,BYTES,cudaMemcpyHostToDevice);
-
 	// lauch kernel
 	mat_multiply<<<dimGrid,dimBlock>>>(d_mat1,d_mat2,d_mat3,N);
 	cudaDeviceSynchronize();
 
-	// move result back to main memory
-	cudaMemcpy(h_mat3,d_mat3,BYTES,cudaMemcpyDeviceToHost);
-
-	//print result
-	for(i=0;i<N;i++)
+	for(i=0;i<N*N;i++)
 	{
-		for(j=0;j<N;j++)
-		{
-			printf("%d ",h_mat3[i][j]);
-		}
-		printf("\n");
+		
+		printf("%d ",d_mat3[i]);
+		if(i%N==0 && i>N)
+			printf("\n");
 	}
-
+	printf("\n");
 }
